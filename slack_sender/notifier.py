@@ -6,6 +6,7 @@ import socket
 import requests
 from IPython.core.magic import register_cell_magic
 from IPython.display import display, HTML
+from IPython import get_ipython
 
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
@@ -79,9 +80,12 @@ class JupyterSlackNotifier:
             # Send start notification
             notifier._send_start_notification(cell_id, start_time)
             
+            # Get the IPython instance to access the user namespace
+            ipython = get_ipython()
+            
             try:
-                # Execute the cell code
-                exec(cell, globals())
+                # Execute the cell code in the user's namespace
+                ipython.run_cell(cell)
                 
                 # Send success notification
                 end_time = datetime.datetime.now()
@@ -151,7 +155,7 @@ class JupyterSlackNotifier:
                                  exception: Exception):
         """Send notification when cell execution crashes"""
         contents = [
-            "Your cell execution has crashed 💀",
+            "Your cell execution has crashed ☠️",
             f'Machine name: {self.host_name}',
             f'Cell: {cell_id}',
             f'Starting date: {start_time.strftime(DATE_FORMAT)}',
