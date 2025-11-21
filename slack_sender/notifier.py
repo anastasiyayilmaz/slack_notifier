@@ -110,7 +110,7 @@ class JupyterSlackNotifier:
                 # Send success notification with output
                 end_time = datetime.datetime.now()
                 elapsed_time = end_time - start_time
-                notifier._send_success_notification(cell_id, start_time, end_time, elapsed_time, output, cell_result)
+                notifier._send_success_notification(cell, start_time, end_time, elapsed_time, output, cell_result)
                 
             except Exception as ex:
                 # Restore stdout
@@ -124,15 +124,18 @@ class JupyterSlackNotifier:
                 # Send error notification
                 end_time = datetime.datetime.now()
                 elapsed_time = end_time - start_time
-                notifier._send_error_notification(cell_id, start_time, end_time, elapsed_time, ex, output)
+                notifier._send_error_notification(cell, start_time, end_time, elapsed_time, ex, output)
                 raise ex
     
-    def _send_start_notification(self, cell_id: str, start_time: datetime.datetime):
+    def _send_start_notification(self, cell_code: str, start_time: datetime.datetime):
         """Send notification when cell execution starts"""
+        # Truncate cell code if too long
+        code_preview = cell_code[:500] + "..." if len(cell_code) > 500 else cell_code
+        
         contents = [
-            'The cell is running.',
-            f'Cell: {cell_id}',
-            f'Starting date: {start_time.strftime(DATE_FORMAT)}'
+            'Cell is running.',
+            f'Starting date: {start_time.strftime(DATE_FORMAT)}',
+            f'\nCell Code:\n```python\n{code_preview}\n```'
         ]
         
         if self.user_mentions:
@@ -150,16 +153,19 @@ class JupyterSlackNotifier:
         except Exception as e:
             print(f"Warning: Failed to send start notification: {e}")
     
-    def _send_success_notification(self, cell_id: str, start_time: datetime.datetime, 
+    def _send_success_notification(self, cell_code: str, start_time: datetime.datetime, 
                                    end_time: datetime.datetime, elapsed_time: datetime.timedelta,
                                    output: str = "", cell_result=None):
         """Send notification when cell execution completes successfully"""
+        # Truncate cell code if too long
+        code_preview = cell_code[:300] + "..." if len(cell_code) > 300 else cell_code
+        
         contents = [
-            "The cell is done.",
-            f'Cell: {cell_id}',
+            "Cell is done running.",
             f'Starting date: {start_time.strftime(DATE_FORMAT)}',
             f'End date: {end_time.strftime(DATE_FORMAT)}',
-            f'Execution duration: {str(elapsed_time)}'
+            f'Execution duration: {str(elapsed_time)}',
+            f'\nCell Code:\n```python\n{code_preview}\n```'
         ]
         
         # Add output if present (truncate if too long for Slack)
@@ -192,16 +198,19 @@ class JupyterSlackNotifier:
         except Exception as e:
             print(f"Warning: Failed to send success notification: {e}")
     
-    def _send_error_notification(self, cell_id: str, start_time: datetime.datetime,
+    def _send_error_notification(self, cell_code: str, start_time: datetime.datetime,
                                  end_time: datetime.datetime, elapsed_time: datetime.timedelta,
                                  exception: Exception, output: str = ""):
         """Send notification when cell execution crashes"""
+        # Truncate cell code if too long
+        code_preview = cell_code[:300] + "..." if len(cell_code) > 300 else cell_code
+        
         contents = [
-            "The cell has crashed ☠️",
-            f'Cell: {cell_id}',
+            "Cell crashed ☠️",
             f'Starting date: {start_time.strftime(DATE_FORMAT)}',
             f'Crash date: {end_time.strftime(DATE_FORMAT)}',
-            f'Crashed execution duration: {str(elapsed_time)}\n'
+            f'Crashed execution duration: {str(elapsed_time)}',
+            f'\nCell Code:\n```python\n{code_preview}\n```\n'
         ]
         
         # Add any output that was produced before the error
